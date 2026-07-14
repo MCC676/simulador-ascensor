@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Ascensor con Sistema de Poleas - 14 Pisos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: #16213e;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+        }
+
+        h1 {
+            text-align: center;
+            color: #e94560;
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            font-size: 14px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e94560;
+            padding-bottom: 10px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px 300px;
+            gap: 20px;
+        }
+
+        /* ===== EDIFICIO ===== */
+        .building-container {
+            background: #0f3460;
+            border-radius: 10px;
+            padding: 15px;
+            position: relative;
+            height: 700px;
+            overflow: hidden;
+        }
+
+        .building-title {
+            text-align: center;
+            color: #aaa;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        #elevatorCanvas {
+            width: 100%;
+            height: 650px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            cursor: pointer;
+            display: block;
+        }
+
+        /* ===== PANEL DE CONTROL ===== */
+        .control-panel {
+            background: #0f3460;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+
+        .control-panel h3 {
+            color: #e94560;
+            font-size: 16px;
+            border-bottom: 1px solid #e94560;
+            padding-bottom: 5px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            accent-color: #e94560;
+        }
+
+        .control-group .value-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+
+        .btn-primary {
+            background: #e94560;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #c73652;
+            transform: scale(1.02);
+        }
+
+        .btn-success {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #27ae60;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d68910;
+        }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 11px;
+        }
+
+        .floor-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            margin: 5px 0;
+        }
+
+        .floor-btn {
+            padding: 4px;
+            font-size: 10px;
+            border: 1px solid #555;
+            border-radius: 3px;
+            background: #2d4059;
+            color: #aaa;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .floor-btn:hover {
+            background: #e94560;
+            color: white;
+        }
+
+        .floor-btn.active {
+            background: #e94560;
+            color: white;
+        }
+
+        .floor-btn.bypassed {
+            background: #e74c3c;
+            color: white;
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .floor-btn.waypoint {
+            background: #f39c12;
+            color: #fff;
+        }
+
+        /* ===== PANEL DE FÍSICA ===== */
+        .physics-panel {
+            background: #0f3460;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+
+        .physics-panel h3 {
+            color: #2ecc71;
+            font-size: 16px;
+            border-bottom: 1px solid #2ecc71;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .physics-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #1a1a3e;
+            font-size: 13px;
+        }
+
+        .physics-item .label {
+            color: #aaa;
+        }
+
+        .physics-item .value {
+            color: #fff;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        .physics-item .value.highlight {
+            color: #e94560;
+        }
+
+        .physics-item .value.success {
+            color: #2ecc71;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-idle { background: #555; color: #fff; }
+        .status-moving { background: #3498db; color: #fff; }
+        .status-full { background: #e74c3c; color: #fff; }
+        .status-bypass { background: #f39c12; color: #fff; }
+        .status-door { background: #2ecc71; color: #fff; }
+
+        /* ===== BITÁCORA ===== */
+        .log-container {
+            background: #0f3460;
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 20px;
+            max-height: 180px;
+            overflow-y: auto;
+            grid-column: 1 / -1;
+        }
+
+        .log-container h4 {
+            color: #aaa;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .log-entry {
+            font-size: 12px;
+            padding: 2px 0;
+            border-bottom: 1px solid #1a1a3e;
+            color: #ccc;
+            font-family: 'Courier New', monospace;
+        }
+
+        .log-entry .time {
+            color: #e94560;
+        }
+
+        .log-entry .info { color: #2ecc71; }
+        .log-entry .warn { color: #f39c12; }
+        .log-entry .error { color: #e74c3c; }
+        .log-entry .bypass { color: #e94560; font-weight: bold; }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1a1a2e; }
+        ::-webkit-scrollbar-thumb { background: #e94560; border-radius: 3px; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr 1fr;
+            }
+            .physics-panel {
+                grid-column: 1 / -1;
+                max-height: 300px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .building-container { height: 500px; }
+            #elevatorCanvas { height: 450px; }
+            .control-panel { max-height: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏢 Simulador de Ascensor</h1>
+        <div class="subtitle">Sistema de Poleas · 14 Pisos · Bypass por Cabina Llena</div>
+
+        <div class="main-layout">
+            <!-- EDIFICIO -->
+            <div class="building-container">
+                <div class="building-title">⬆ PISOS 1-14 ⬇</div>
+                <canvas id="elevatorCanvas" width="500" height="650"></canvas>
+            </div>
+
+            <!-- PANEL DE CONTROL -->
+            <div class="control-panel">
+                <h3>🎮 Control</h3>
+
+                <div class="control-group">
+                    <label>Personas en cabina: <span id="personCountDisplay">5</span></label>
+                    <input type="range" id="personSlider" min="0" max="21" value="5" step="1">
+                    <div style="display:flex; justify-content:space-between; font-size:10px; color:#888;">
+                        <span>0</span>
+                        <span>21 (1600 kg)</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Piso destino:</label>
+                    <div class="floor-buttons" id="destinationButtons">
+                        <!-- Generado por JS -->
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Llamadas externas (clic en botones del edificio):</label>
+                    <div style="display:flex; gap:5px; flex-wrap:wrap;" id="externalCallsList">
+                        <!-- Generado por JS -->
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-success" id="btnMove">▶ Iniciar viaje</button>
+                    <button class="btn btn-danger" id="btnStop">⏹ Detener</button>
+                    <button class="btn btn-warning" id="btnReset">🔄 Reiniciar</button>
+                </div>
+
+                <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:5px;">
+                    <button class="btn btn-sm btn-primary" id="btnDoorOpen">🚪 Abrir puerta</button>
+                    <button class="btn btn-sm btn-primary" id="btnDoorClose">🚪 Cerrar puerta</button>
+                    <button class="btn btn-sm btn-warning" id="btnInterrupt">✋ Interrumpir cierre</button>
+                </div>
+
+                <div style="margin-top:5px; padding:8px; background:#1a1a2e; border-radius:5px;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px;">
+                        <span>Estado:</span>
+                        <span id="statusDisplay" class="status-badge status-idle">IDLE</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:3px;">
+                        <span>Bypass:</span>
+                        <span id="bypassDisplay" style="color:#aaa;">INACTIVO</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:3px;">
+                        <span>Puerta:</span>
+                        <span id="doorDisplay" style="color:#aaa;">CERRADA</span>
+                    </div>
+                    <div id="routeInfo" style="font-size:10px; color:#f39c12; margin-top:3px; display:none;"></div>
+                </div>
+
+                <div style="margin-top:5px; display:flex; gap:10px; font-size:12px; flex-wrap:wrap;">
+                    <span>🏷️ <span id="currentFloorDisplay">1</span></span>
+                    <span>👥 <span id="personDisplay">5</span></span>
+                    <span>📊 <span id="occupancyDisplay">24%</span></span>
+                    <span>⚖️ <span id="massDisplay">381 kg</span></span>
+                </div>
+            </div>
+
+            <!-- PANEL DE FÍSICA -->
+            <div class="physics-panel">
+                <h3>⚡ Física en Tiempo Real</h3>
+
+                <div class="physics-item">
+                    <span class="label">Ocupación</span>
+                    <span class="value" id="physOccupancy">24%</span>
+                </div>
+                <div class="physics-item">
+                    <span class="label">Estado ocupación</span>
+                    <span class="value" id="physState">BAJA OCUPACIÓN</span>
+                </div>
+                <div class="physics-item">
+                    <span class="label">Masa estimada</span>
+                    <span class="value" id="physMass">381 kg</span>
+                </div>
+                <div class="physics-item">
+                    <span class="label">Peso (P = mg)</span>
+                    <span class="value" id="physWeight">3739 N</span>
+                </div>
+                <div class="physics-item">
+                    <span class="label">Tensión (T = m(g+a))</span>
+                    <span class="value highlight" id="physTension">~3739 N</span>
+                </div>
+                <div class="physics-item">
+                    <span class="label">Aceleración</span>
+                    <span class="value" id="physAcceleration">0.00 m/s²</span>
+                </div>
+                <div class="physics-item">
+                    <span class="label">Velocidad</span>
+                    <span class="value" id="physVelocity">0.00 m/s</span>
+                </div>
+                <div class="physics-item">
+                    <span class="label">Trabajo (W = mgh)</span>
+                    <span class="value" id="physWork">0.00 J</span>
+                </div>
+                <div class="physics-item">
+                    <span class="label">Potencia (P = W/t)</span>
+                    <span class="value" id="physPower">0.00 W</span>
+                </div>
+                <div class="physics-item" style="border-top:2px solid #e94560; margin-top:5px; padding-top:8px;">
+                    <span class="label">Paradas evitadas</span>
+                    <span class="value success" id="physSavedStops">0</span>
+                </div>
+                <div class="physics-item">
+                    <span class="label">Tiempo ahorrado</span>
+                    <span class="value success" id="physSavedTime">0 s</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- BITÁCORA -->
+        <div class="log-container" id="logContainer">
+            <h4>📋 Bitácora de eventos</h4>
+            <div id="logEntries">
+                <div class="log-entry"><span class="time">[00.0s]</span> <span class="info">Sistema iniciado en piso 1</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================================
+    //  CONFIGURACIÓN
+    // ============================================================
+    const CONFIG = {
+        totalFloors: 14,
+        usefulFloors: 12,        // pisos 2-13 tienen botón de llamada
+        maxPersons: 21,
+        maxLoadKg: 1600,
+        floorHeightPx: 42,       // px visuales por piso
+        floorHeightM: 3.5,       // metros reales por piso
+        gravity: 9.81,
+        doorOpenTime: 2.0,       // segundos para abrir
+        doorCloseTime: 2.5,      // segundos para cerrar
+        doorReopenTime: 1.5,     // segundos para reabrir
+        doorAutoCloseDelay: 4.0, // segundos que espera abierta antes de auto-cerrar
+        waitTimeAtFloor: 0.8,    // pausa al llegar antes de abrir puerta
+        bypassThreshold: 90,     // % ocupación para bypass automático
+        highOccupancyThreshold: 80,
+        nominalSpeed: 1.2,       // m/s
+        comfortAccel: 0.8,       // m/s²
+        timeAccel: 3.5,          // factor de aceleración visual
+    };
+
+    // px por metro = floorHeightPx / floorHeightM
+    const PX_PER_M = CONFIG.floorHeightPx / CONFIG.floorHeightM; // 12 px/m
+    const avgMass = CONFIG.maxLoadKg / CONFIG.maxPersons; // ~76.19 kg
+
+    // ============================================================
+    //  SISTEMA DE COORDENADAS (consistente en todo el simulador)
+    // ============================================================
+    const BUILD = { x: 60, y: 30, w: 200, h: 600 };
+    const CABIN = { w: 50, h: 40 };
+
+    function floorToCanvasY(floor) {
+        // Retorna la coordenada Y (top-left) de la cabina para un piso dado
+        return BUILD.y + BUILD.h - (floor - 1) * CONFIG.floorHeightPx - CABIN.h - 2;
+    }
+
+    function canvasYToFloor(y) {
+        // Retorna el piso más cercano a una coordenada Y de cabina
+        const raw = 1 + (BUILD.y + BUILD.h - CABIN.h - 2 - y) / CONFIG.floorHeightPx;
+        return Math.max(1, Math.min(CONFIG.totalFloors, Math.round(raw)));
+    }
+
+    function floorDistance(floorA, floorB) {
+        return Math.abs(floorB - floorA);
+    }
+
+    function realHeight(floorA, floorB) {
+        return floorDistance(floorA, floorB) * CONFIG.floorHeightM;
+    }
+
+    // ============================================================
+    //  ESTADO GLOBAL
+    // ============================================================
+    const state = {
+        // Posición
+        currentFloor: 1,
+        posY: floorToCanvasY(1),
+
+        // Ocupación
+        persons: 5,
+
+        // Viaje
+        isMoving: false,
+        direction: 'idle',        // 'up' | 'down' | 'idle'
+        targetFloor: 1,
+        waypoints: [],            // paradas programadas (pisos ordenados)
+        currentWaypointIdx: 0,
+
+        // Física en movimiento
+        speed: 0,                 // m/s
+        acceleration: 0,          // m/s²
+        isAccelerating: false,
+        isDecelerating: false,
+
+        // Control de tramo (leg)
+        legStartY: 0,
+        legTargetY: 0,
+        legStartFloor: 1,
+        legTargetFloor: 1,
+        legProgress: 0,           // 0→1
+        legStartTime: 0,
+
+        // Puerta
+        doorState: 'closed',      // closed | opening | open | closing | reopening
+        doorTimer: 0,
+        doorInterrupted: false,
+        doorAutoCloseCountdown: 0,
+
+        // Bypass
+        bypassActive: false,
+
+        // Llamadas externas
+        externalCalls: new Set(),
+
+        // Estadísticas
+        skippedFloors: [],
+        savedStops: 0,
+        savedTime: 0,             // segundos ahorrados
+        emergencyStop: false,
+
+        // Temporales
+        startTime: Date.now(),
+        tripStartTime: 0,
+        tripStartFloor: 1,
+        totalTripTime: 0,
+        totalTripWork: 0,
+    };
+
+    // ============================================================
+    //  REFERENCIAS DOM
+    // ============================================================
+    const canvas = document.getElementById('elevatorCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const $ = (id) => document.getElementById(id);
+
+    const dom = {
+        personSlider: $('personSlider'),
+        personCountDisplay: $('personCountDisplay'),
+        personDisplay: $('personDisplay'),
+        occupancyDisplay: $('occupancyDisplay'),
+        massDisplay: $('massDisplay'),
+        currentFloorDisplay: $('currentFloorDisplay'),
+        statusDisplay: $('statusDisplay'),
+        bypassDisplay: $('bypassDisplay'),
+        doorDisplay: $('doorDisplay'),
+        routeInfo: $('routeInfo'),
+        destinationButtons: $('destinationButtons'),
+        externalCallsList: $('externalCallsList'),
+        logEntries: $('logEntries'),
+        // Física
+        physOccupancy: $('physOccupancy'),
+        physState: $('physState'),
+        physMass: $('physMass'),
+        physWeight: $('physWeight'),
+        physTension: $('physTension'),
+        physAcceleration: $('physAcceleration'),
+        physVelocity: $('physVelocity'),
+        physWork: $('physWork'),
+        physPower: $('physPower'),
+        physSavedStops: $('physSavedStops'),
+        physSavedTime: $('physSavedTime'),
+    };
+
+    // ============================================================
+    //  CÁLCULOS FÍSICOS
+    // ============================================================
+    function getOccupancyPercent(p) { return (p / CONFIG.maxPersons) * 100; }
+    function getEstimatedMass(p) { return p * avgMass; }
+    function getOccupancyState(pct) {
+        if (pct >= 100) return 'CABINA LLENA';
+        if (pct >= 90) return 'CABINA CASI LLENA';
+        if (pct >= 80) return 'ALTA OCUPACIÓN';
+        if (pct >= 40) return 'OCUPACIÓN MEDIA';
+        return 'BAJA OCUPACIÓN';
+    }
+    function shouldBypass(pct) { return pct >= CONFIG.bypassThreshold; }
+    function calcWeight(mass) { return mass * CONFIG.gravity; }
+    function calcTension(mass, accel) { return mass * (CONFIG.gravity + accel); }
+    function calcWork(mass, heightM) { return mass * CONFIG.gravity * heightM; }
+    function calcPower(work, timeSec) { return timeSec > 0 ? work / timeSec : 0; }
+
+    // ============================================================
+    //  LOG
+    // ============================================================
+    function addLog(msg, type) {
+        type = type || 'info';
+        const elapsed = ((Date.now() - state.startTime) / 1000).toFixed(1);
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+        const cls = { info:'info', warn:'warn', error:'error', bypass:'bypass' }[type] || 'info';
+        div.innerHTML = '<span class="time">[' + elapsed.padStart(5,'0') + 's]</span> <span class="' + cls + '">' + msg + '</span>';
+        dom.logEntries.appendChild(div);
+        dom.logEntries.scrollTop = dom.logEntries.scrollHeight;
+        while (dom.logEntries.children.length > 120) {
+            dom.logEntries.removeChild(dom.logEntries.firstChild);
+        }
+    }
+
+    // ============================================================
+    //  DIBUJADO
+    // ============================================================
+    function draw() {
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        // Fondo
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        drawBuilding();
+        drawCallButtons();
+        drawCabin();
+        drawPulleySystem();
+        drawForceLabels();
+    }
+
+    function drawBuilding() {
+        const b = BUILD;
+        // Paredes del shaft
+        ctx.fillStyle = '#1a1a3e';
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.strokeStyle = '#2a2a5e';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(b.x, b.y, b.w, b.h);
+
+        // Líneas de piso
+        for (let i = 0; i < CONFIG.totalFloors; i++) {
+            const floorNum = i + 1;
+            const fy = b.y + b.h - i * CONFIG.floorHeightPx - CONFIG.floorHeightPx + 2;
+
+            ctx.strokeStyle = '#3a3a6e';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(b.x, fy);
+            ctx.lineTo(b.x + b.w, fy);
+            ctx.stroke();
+
+            // Número de piso
+            const isUseful = floorNum >= 2 && floorNum <= CONFIG.usefulFloors + 1;
+            ctx.fillStyle = isUseful ? '#88aaff' : '#555';
+            ctx.font = '10px monospace';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(floorNum, b.x - 8, fy + CONFIG.floorHeightPx / 2);
+        }
+    }
+
+    function drawCallButtons() {
+        const b = BUILD;
+        for (let i = 0; i < CONFIG.totalFloors; i++) {
+            const floorNum = i + 1;
+            if (floorNum < 2 || floorNum > CONFIG.usefulFloors + 1) continue;
+
+            const fy = b.y + b.h - i * CONFIG.floorHeightPx - CONFIG.floorHeightPx + 2;
+            const btnX = b.x + b.w + 10;
+            const btnY = fy + CONFIG.floorHeightPx / 2 - 8;
+            const btnW = 16, btnH = 16;
+
+            const isCalled = state.externalCalls.has(floorNum);
+            const isSkipped = state.skippedFloors.includes(floorNum);
+
+            ctx.fillStyle = isSkipped ? '#e74c3c' : (isCalled ? '#f39c12' : '#2a2a5e');
+            ctx.fillRect(btnX, btnY, btnW, btnH);
+            ctx.strokeStyle = isSkipped ? '#e74c3c' : (isCalled ? '#f39c12' : '#555');
+            ctx.lineWidth = 1;
+            ctx.strokeRect(btnX, btnY, btnW, btnH);
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            if (isSkipped) {
+                ctx.fillStyle = '#e74c3c';
+                ctx.font = '8px monospace';
+                ctx.fillText('✕', btnX + btnW/2, btnY + btnH/2);
+            } else if (isCalled) {
+                ctx.fillStyle = '#f39c12';
+                ctx.font = '8px monospace';
+                ctx.fillText('▲', btnX + btnW/2, btnY + btnH/2);
+            }
+        }
+    }
+
+    function drawCabin() {
+        const b = BUILD;
+        const cx = b.x + (b.w - CABIN.w) / 2;
+        const cy = state.posY;
+
+        const occ = getOccupancyPercent(state.persons);
+        const isVeryFull = occ >= 90;
+        const isHigh = occ >= 80;
+
+        // Sombra exterior
+        ctx.shadowColor = isVeryFull ? 'rgba(231,76,60,0.7)' : (isHigh ? 'rgba(243,156,18,0.5)' : 'rgba(52,152,219,0.5)');
+        ctx.shadowBlur = 20;
+
+        // Gradiente del cuerpo
+        const grad = ctx.createLinearGradient(cx, cy, cx + CABIN.w, cy + CABIN.h);
+        if (isVeryFull) {
+            grad.addColorStop(0, '#e74c3c');
+            grad.addColorStop(1, '#c0392b');
+        } else if (isHigh) {
+            grad.addColorStop(0, '#f39c12');
+            grad.addColorStop(1, '#d68910');
+        } else {
+            grad.addColorStop(0, '#3498db');
+            grad.addColorStop(1, '#2980b9');
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(cx, cy, CABIN.w, CABIN.h);
+        ctx.shadowBlur = 0;
+
+        // Borde
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(cx, cy, CABIN.w, CABIN.h);
+
+        // Piso actual (encima)
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(state.currentFloor, cx + CABIN.w / 2, cy - 4);
+
+        // Personas dentro
+        const showN = Math.min(state.persons, 15);
+        for (let i = 0; i < showN; i++) {
+            const px = cx + 5 + (i % 5) * 8;
+            const py = cy + CABIN.h - 8 - Math.floor(i / 5) * 10;
+            ctx.fillStyle = i < 8 ? '#2ecc71' : (i < 14 ? '#f39c12' : '#e74c3c');
+            ctx.beginPath();
+            ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        if (state.persons > 15) {
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = '7px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('+' + (state.persons - 15), cx + CABIN.w / 2, cy + CABIN.h - 4);
+        }
+
+        // % ocupación
+        ctx.fillStyle = occ >= 90 ? '#e74c3c' : (occ >= 80 ? '#f39c12' : '#2ecc71');
+        ctx.font = '7px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(Math.round(occ) + '%', cx + CABIN.w / 2, cy + 1);
+
+        // Estado de puerta
+        const doorLabels = {
+            closed: 'CERRADA', opening: 'ABRIENDO...', open: 'ABIERTA',
+            closing: 'CERRANDO...', reopening: 'REABRIENDO...'
+        };
+        ctx.fillStyle = state.doorState === 'open' ? '#2ecc71' : '#aaa';
+        ctx.font = '7px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('🚪 ' + (doorLabels[state.doorState] || '---'), cx + CABIN.w / 2, cy + CABIN.h + 3);
+    }
+
+    function drawPulleySystem() {
+        const b = BUILD;
+        const cx = b.x + b.w / 2;
+        const cabinCx = b.x + (b.w - CABIN.w) / 2 + CABIN.w / 2;
+        const pulleyY = b.y + 8;
+
+        // Motor
+        ctx.fillStyle = '#444';
+        ctx.fillRect(cx - 28, pulleyY - 6, 56, 14);
+        ctx.fillStyle = '#888';
+        ctx.font = '8px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('MOTOR', cx, pulleyY + 1);
+
+        // Polea
+        ctx.beginPath();
+        ctx.arc(cx, pulleyY + 20, 14, 0, Math.PI * 2);
+        ctx.fillStyle = '#666';
+        ctx.fill();
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Centro polea
+        ctx.beginPath();
+        ctx.arc(cx, pulleyY + 20, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#bbb';
+        ctx.fill();
+
+        // ¿Polea girando?
+        if (state.isMoving && state.speed > 0.05) {
+            ctx.save();
+            ctx.translate(cx, pulleyY + 20);
+            ctx.rotate((Date.now() / 200) * (state.direction === 'up' ? -1 : 1) * Math.min(state.speed / CONFIG.nominalSpeed, 1));
+            ctx.strokeStyle = '#e94560';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, -10);
+            ctx.lineTo(0, 10);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-10, 0);
+            ctx.lineTo(10, 0);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Cable principal (polea → cabina)
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, pulleyY + 20 + 8);
+        ctx.lineTo(cabinCx, state.posY);
+        ctx.strokeStyle = '#ccc';
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([]);
+        ctx.stroke();
+
+        // Cable contrapeso
+        const cwX = b.x + b.w + 40;
+        const cabinMidY = state.posY + CABIN.h / 2;
+        const cableTopY = pulleyY + 20 + 8;
+        const cwY = cableTopY + (cableTopY - cabinMidY);
+
+        ctx.beginPath();
+        ctx.moveTo(cx + 8, cableTopY);
+        ctx.lineTo(cwX, cwY);
+        ctx.strokeStyle = '#777';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Contrapeso
+        ctx.fillStyle = '#555';
+        ctx.fillRect(cwX - 10, cwY - 8, 20, 16);
+        ctx.fillStyle = '#888';
+        ctx.font = '7px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('CW', cwX, cwY);
+
+        // Etiqueta polea
+        ctx.fillStyle = '#888';
+        ctx.font = '7px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('⏺ POLEA', cx, pulleyY + 36);
+    }
+
+    function drawForceLabels() {
+        if (!state.isMoving && state.doorState === 'closed') return;
+
+        const b = BUILD;
+        const cx = b.x + (b.w - CABIN.w) / 2;
+        const cy = state.posY;
+        const mass = getEstimatedMass(state.persons);
+        const accel = state.acceleration || 0;
+        const tension = calcTension(mass, accel);
+        const weight = calcWeight(mass);
+        const arrowX = cx + CABIN.w + 25;
+
+        // Vector Tensión (↑ verde)
+        ctx.fillStyle = '#2ecc71';
+        ctx.font = '9px monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('T ↑ ' + tension.toFixed(0) + ' N', arrowX, cy + CABIN.h / 2 - 6);
+
+        // Vector Peso (↓ rojo)
+        ctx.fillStyle = '#e74c3c';
+        ctx.textBaseline = 'top';
+        ctx.fillText('P ↓ ' + weight.toFixed(0) + ' N', arrowX, cy + CABIN.h / 2 + 6);
+
+        // Resultante
+        const net = tension - weight;
+        ctx.fillStyle = net > 0 ? '#3498db' : (net < 0 ? '#e74c3c' : '#aaa');
+        ctx.font = '8px monospace';
+        ctx.textBaseline = 'top';
+        ctx.fillText('ΣF=' + net.toFixed(0) + ' N', arrowX, cy + CABIN.h / 2 + 20);
+
+        // Fórmula
+        ctx.fillStyle = '#666';
+        ctx.font = '7px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('T = m(g+a) = ' + mass.toFixed(1) + '(' + CONFIG.gravity.toFixed(1) + '+' + accel.toFixed(2) + ')',
+            b.x + b.w / 2, b.y + b.h + 6);
+    }
+
+    // ============================================================
+    //  UI: ACTUALIZACIÓN DE BOTONES Y ESTADO
+    // ============================================================
+    // Construye los botones de destino UNA SOLA VEZ (init/reset)
+    function buildDestinationButtons() {
+        const container = dom.destinationButtons;
+        container.innerHTML = '';
+        for (let i = 1; i <= CONFIG.totalFloors; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'floor-btn';
+            btn.textContent = i;
+            btn.setAttribute('data-floor', i);
+            btn.addEventListener('click', function() {
+                const floor = parseInt(this.getAttribute('data-floor'));
+                if (state.isMoving) {
+                    addLog('No se puede cambiar destino durante el movimiento', 'warn');
+                    return;
+                }
+                if (state.doorState !== 'closed') {
+                    addLog('Cierra la puerta antes de cambiar destino', 'warn');
+                    return;
+                }
+                state.targetFloor = floor;
+                refreshDestinationButtons();
+                updateExternalCallsDisplay();
+                addLog('Destino seleccionado: piso ' + floor, 'info');
+            });
+            container.appendChild(btn);
+        }
+        refreshDestinationButtons();
+    }
+
+    // Solo actualiza clases CSS (sin destruir DOM) — seguro llamar cada frame
+    function refreshDestinationButtons() {
+        const buttons = dom.destinationButtons.children;
+        for (let i = 0; i < buttons.length; i++) {
+            const btn = buttons[i];
+            const floor = parseInt(btn.getAttribute('data-floor'));
+            // Reset clases
+            btn.classList.remove('active', 'waypoint');
+            // Aplicar según estado
+            if (floor === state.targetFloor) btn.classList.add('active');
+            if (state.waypoints.indexOf(floor) !== -1 && floor !== state.targetFloor) btn.classList.add('waypoint');
+        }
+    }
+
+    // Actualiza el display de llamadas externas (solo cuando cambian)
+    function updateExternalCallsDisplay() {
+        const container = dom.externalCallsList;
+        const calls = Array.from(state.externalCalls).sort(function(a, b) { return a - b; });
+        if (calls.length === 0) {
+            container.innerHTML = '<span style="font-size:11px;color:#888;">Ninguna (clic en botones ▲ del edificio)</span>';
+        } else {
+            container.innerHTML = calls.map(function(f) {
+                return '<span style="background:#f39c12;color:#000;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:bold;">P' + f + '</span>';
+            }).join(' ');
+        }
+    }
+
+    function updateRouteInfo() {
+        if (state.waypoints.length > 0) {
+            dom.routeInfo.style.display = 'block';
+            dom.routeInfo.textContent = '🗺 Ruta: ' + state.waypoints.join(' → ');
+        } else {
+            dom.routeInfo.style.display = 'none';
+        }
+    }
+
+    function updateUI() {
+        var occ = getOccupancyPercent(state.persons);
+        var mass = getEstimatedMass(state.persons);
+        var occState = getOccupancyState(occ);
+        var bypass = shouldBypass(occ);
+
+        // Controles básicos
+        dom.personCountDisplay.textContent = state.persons;
+        dom.personDisplay.textContent = state.persons;
+        dom.occupancyDisplay.textContent = Math.round(occ) + '%';
+        dom.massDisplay.textContent = Math.round(mass) + ' kg';
+        dom.currentFloorDisplay.textContent = state.currentFloor;
+
+        // Estado
+        var statusText = 'IDLE';
+        var statusClass = 'status-idle';
+        if (state.emergencyStop) {
+            statusText = '⛔ PARADA EMERG.';
+            statusClass = 'status-full';
+        } else if (state.isMoving) {
+            statusText = (state.direction === 'up' ? '⬆ SUBIENDO' : '⬇ BAJANDO');
+            statusClass = 'status-moving';
+            if (state.isAccelerating) statusText += ' [ACCEL]';
+            if (state.isDecelerating) statusText += ' [DECEL]';
+        } else if (state.doorState === 'open' || state.doorState === 'opening' || state.doorState === 'reopening') {
+            statusText = '🚪 PUERTA';
+            statusClass = 'status-door';
+        }
+        if (bypass && state.isMoving) {
+            statusText += ' 🔒BYPASS';
+        }
+        dom.statusDisplay.textContent = statusText;
+        dom.statusDisplay.className = 'status-badge ' + statusClass;
+
+        // Bypass
+        if (bypass) {
+            dom.bypassDisplay.innerHTML = '🔒 ACTIVO (≥' + CONFIG.bypassThreshold + '%)';
+            dom.bypassDisplay.style.color = '#f39c12';
+        } else if (occ >= CONFIG.highOccupancyThreshold) {
+            dom.bypassDisplay.innerHTML = '⚠️ RECOMENDADO (≥' + CONFIG.highOccupancyThreshold + '%)';
+            dom.bypassDisplay.style.color = '#f39c12';
+        } else {
+            dom.bypassDisplay.innerHTML = '✅ INACTIVO';
+            dom.bypassDisplay.style.color = '#2ecc71';
+        }
+
+        // Puerta
+        var doorLabels = { closed:'CERRADA', opening:'ABRIENDO', open:'ABIERTA', closing:'CERRANDO', reopening:'REABRIENDO' };
+        dom.doorDisplay.textContent = '🚪 ' + (doorLabels[state.doorState] || '???');
+        dom.doorDisplay.style.color = (state.doorState === 'open') ? '#2ecc71' : '#aaa';
+
+        // Física
+        dom.physOccupancy.textContent = Math.round(occ) + '%';
+        dom.physState.textContent = occState;
+        dom.physState.style.color = occ >= 90 ? '#e74c3c' : (occ >= 80 ? '#f39c12' : '#2ecc71');
+        dom.physMass.textContent = Math.round(mass) + ' kg';
+
+        var weight = calcWeight(mass);
+        dom.physWeight.textContent = weight.toFixed(1) + ' N';
+
+        var accel = state.acceleration || 0;
+        var tension = calcTension(mass, accel);
+        dom.physTension.textContent = tension.toFixed(1) + ' N';
+        dom.physTension.style.color = occ >= 90 ? '#e74c3c' : '#e94560';
+
+        dom.physAcceleration.textContent = accel.toFixed(2) + ' m/s²';
+        dom.physVelocity.textContent = state.speed.toFixed(2) + ' m/s';
+
+        // Trabajo y potencia del viaje
+        var heightM = realHeight(state.tripStartFloor, state.currentFloor);
+        var work = calcWork(mass, heightM);
+        dom.physWork.textContent = work.toFixed(1) + ' J';
+
+        var elapsed = state.isMoving ? (Date.now() - state.tripStartTime) / 1000 : state.totalTripTime;
+        if (elapsed < 0.01) elapsed = 0.01;
+        var power = calcPower(work, elapsed);
+        dom.physPower.textContent = power.toFixed(1) + ' W';
+
+        // Ahorros
+        dom.physSavedStops.textContent = state.savedStops;
+        dom.physSavedTime.textContent = state.savedTime.toFixed(1) + ' s';
+
+        // Solo refrescar clases CSS de botones (no reconstruir DOM)
+        refreshDestinationButtons();
+        updateRouteInfo();
+    }
+
+    // ============================================================
+    //  SISTEMA DE PUERTAS
+    // ============================================================
+    function startOpeningDoor() {
+        if (state.isMoving) return;
+        if (state.doorState === 'open' || state.doorState === 'opening') return;
+        state.doorState = 'opening';
+        state.doorTimer = 0;
+        state.doorAutoCloseCountdown = 0;
+        addLog('🚪 Abriendo puerta...', 'info');
+    }
+
+    function startClosingDoor() {
+        if (state.isMoving) return;
+        if (state.doorState === 'closed' || state.doorState === 'closing') return;
+        state.doorState = 'closing';
+        state.doorTimer = 0;
+        addLog('🚪 Cerrando puerta...', 'info');
+    }
+
+    function startReopeningDoor() {
+        if (state.doorState !== 'closing') return;
+        state.doorState = 'reopening';
+        state.doorTimer = 0;
+        state.doorInterrupted = true;
+        addLog('⚠️ Puerta interrumpida — Reabriendo...', 'warn');
+    }
+
+    function updateDoor(dt) {
+        // Solo opera puerta cuando el ascensor está detenido
+        if (state.isMoving) return;
+
+        switch (state.doorState) {
+            case 'opening':
+                state.doorTimer += dt;
+                if (state.doorTimer >= CONFIG.doorOpenTime) {
+                    state.doorState = 'open';
+                    state.doorTimer = 0;
+                    state.doorAutoCloseCountdown = CONFIG.doorAutoCloseDelay;
+                    state.doorInterrupted = false;
+                    addLog('🚪 Puerta abierta — esperando ' + CONFIG.doorAutoCloseDelay.toFixed(0) + 's', 'info');
+                }
+                break;
+
+            case 'open':
+                state.doorAutoCloseCountdown -= dt;
+                if (state.doorAutoCloseCountdown <= 0) {
+                    startClosingDoor();
+                }
+                break;
+
+            case 'closing':
+                state.doorTimer += dt;
+                if (state.doorTimer >= CONFIG.doorCloseTime) {
+                    state.doorState = 'closed';
+                    state.doorTimer = 0;
+                    addLog('🚪 Puerta cerrada', 'info');
+                    // Continuar al siguiente waypoint
+                    onDoorClosed();
+                }
+                break;
+
+            case 'reopening':
+                state.doorTimer += dt;
+                if (state.doorTimer >= CONFIG.doorReopenTime) {
+                    state.doorState = 'open';
+                    state.doorTimer = 0;
+                    state.doorAutoCloseCountdown = CONFIG.doorAutoCloseDelay;
+                    addLog('🚪 Puerta reabierta', 'info');
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    function onDoorClosed() {
+        // Después de cerrar puerta, continuar al siguiente waypoint
+        state.currentWaypointIdx++;
+        if (state.currentWaypointIdx < state.waypoints.length) {
+            // Hay más paradas — reanudar movimiento
+            var nextFloor = state.waypoints[state.currentWaypointIdx];
+            addLog('➡ Continuando a siguiente parada: piso ' + nextFloor, 'info');
+            startLeg(nextFloor);
+            state.isMoving = true;
+        } else {
+            // Fin real del viaje — solo ir a idle, sin abrir puerta otra vez
+            state.direction = 'idle';
+            addLog('✅ Todas las paradas completadas — ascensor en idle', 'info');
+        }
+    }
+
+    // ============================================================
+    //  SISTEMA DE MOVIMIENTO
+    // ============================================================
+
+    /**
+     * Inicia el viaje completo. Construye la lista de waypoints
+     * (paradas ordenadas) y arranca el primer tramo.
+     */
+    function startTrip() {
+        if (state.isMoving) {
+            addLog('Ya hay un viaje en curso', 'warn');
+            return;
+        }
+        if (state.doorState !== 'closed') {
+            addLog('Cierra la puerta antes de iniciar el viaje', 'warn');
+            return;
+        }
+        if (state.currentFloor === state.targetFloor && state.externalCalls.size === 0) {
+            addLog('Selecciona un piso destino diferente al actual', 'warn');
+            return;
+        }
+
+        // Si está en el destino pero hay llamadas externas, atender la primera
+        var dest = state.targetFloor;
+        if (dest === state.currentFloor && state.externalCalls.size > 0) {
+            dest = Array.from(state.externalCalls).sort(function(a, b) {
+                return Math.abs(a - state.currentFloor) - Math.abs(b - state.currentFloor);
+            })[0];
+            state.targetFloor = dest;
+        }
+
+        // Evaluar bypass
+        var occ = getOccupancyPercent(state.persons);
+        state.bypassActive = shouldBypass(occ);
+
+        // Dirección
+        state.direction = dest > state.currentFloor ? 'up' : 'down';
+
+        // Construir waypoints
+        state.waypoints = buildWaypoints(state.currentFloor, dest);
+
+        if (state.bypassActive) {
+            addLog('🔒 BYPASS ACTIVADO — Ocupación ' + Math.round(occ) + '% ≥ ' + CONFIG.bypassThreshold + '%', 'bypass');
+            addLog('   Solo se atenderá el destino final. Llamadas externas serán omitidas.', 'bypass');
+        }
+
+        state.currentWaypointIdx = 0;
+        state.isMoving = true;
+        state.emergencyStop = false;
+        state.tripStartTime = Date.now();
+        state.tripStartFloor = state.currentFloor;
+        state.totalTripTime = 0;
+        state.totalTripWork = 0;
+
+        addLog('🚀 Viaje iniciado → ' + state.waypoints.join(' → ') + ' (' + state.direction + ')', 'info');
+        updateUI();
+
+        // Iniciar primer tramo
+        startLeg(state.waypoints[0]);
+    }
+
+    /**
+     * Construye la lista ordenada de waypoints:
+     * - Incluye llamadas externas en el camino (si no hay bypass)
+     * - Termina con el destino final
+     */
+    function buildWaypoints(fromFloor, toFloor) {
+        var waypoints = [];
+        var dir = toFloor > fromFloor ? 'up' : 'down';
+
+        // Recolectar llamadas externas en el camino
+        if (!state.bypassActive) {
+            state.externalCalls.forEach(function(floor) {
+                if (dir === 'up' && floor > fromFloor && floor <= toFloor) {
+                    waypoints.push(floor);
+                } else if (dir === 'down' && floor < fromFloor && floor >= toFloor) {
+                    waypoints.push(floor);
+                }
+            });
+        } else {
+            // Con bypass: contar las llamadas que se omitirán
+            state.externalCalls.forEach(function(floor) {
+                var onPath = (dir === 'up' && floor > fromFloor && floor <= toFloor) ||
+                             (dir === 'down' && floor < fromFloor && floor >= toFloor);
+                if (onPath && floor !== toFloor) {
+                    state.skippedFloors.push(floor);
+                    state.savedStops++;
+                    state.savedTime += CONFIG.doorOpenTime + CONFIG.doorCloseTime + CONFIG.waitTimeAtFloor + CONFIG.doorAutoCloseDelay;
+                    addLog('⏭️ Piso ' + floor + ' será omitido por BYPASS', 'bypass');
+                }
+            });
+        }
+
+        // Ordenar según dirección
+        if (dir === 'up') {
+            waypoints.sort(function(a, b) { return a - b; });
+        } else {
+            waypoints.sort(function(a, b) { return b - a; });
+        }
+
+        // Agregar destino final (sin duplicar)
+        if (waypoints.length === 0 || waypoints[waypoints.length - 1] !== toFloor) {
+            waypoints.push(toFloor);
+        }
+
+        return waypoints;
+    }
+
+    /**
+     * Inicia un tramo (leg) hacia un piso específico.
+     */
+    function startLeg(targetFloor) {
+        state.legStartFloor = state.currentFloor;
+        state.legTargetFloor = targetFloor;
+        state.legStartY = state.posY;
+        state.legTargetY = floorToCanvasY(targetFloor);
+        state.legProgress = 0;
+        state.legStartTime = performance.now();
+        state.speed = 0;
+        state.acceleration = CONFIG.comfortAccel;
+        state.isAccelerating = true;
+        state.isDecelerating = false;
+        state.direction = targetFloor > state.currentFloor ? 'up' : 'down';
+    }
+
+    /**
+     * Actualiza el movimiento de la cabina. Usa un perfil de velocidad
+     * trapezoidal: aceleración → constante → desaceleración.
+     */
+    function updateMovement(dt) {
+        if (!state.isMoving || state.emergencyStop) return;
+
+        // Calcular distancia y progreso
+        var totalDistPx = Math.abs(state.legTargetY - state.legStartY);
+        if (totalDistPx < 1) {
+            // Ya estamos en el piso
+            arriveAtWaypoint();
+            return;
+        }
+
+        var distRemaining = Math.abs(state.legTargetY - state.posY);
+        var progress = 1 - (distRemaining / totalDistPx);
+        progress = Math.max(0, Math.min(1, progress));
+        state.legProgress = progress;
+
+        // Perfil de velocidad trapezoidal
+        var accelPhase = 0.15;
+        var decelPhase = 0.85;
+
+        if (progress < accelPhase) {
+            // Fase de aceleración
+            var ramp = progress / accelPhase;
+            state.acceleration = CONFIG.comfortAccel * (1 - ramp * 0.5);
+            state.speed += state.acceleration * dt;
+            state.speed = Math.min(state.speed, CONFIG.nominalSpeed);
+            state.isAccelerating = true;
+            state.isDecelerating = false;
+        } else if (progress < decelPhase) {
+            // Fase de velocidad constante
+            state.acceleration = 0;
+            state.speed = CONFIG.nominalSpeed;
+            state.isAccelerating = false;
+            state.isDecelerating = false;
+        } else {
+            // Fase de desaceleración
+            var decelRamp = (progress - decelPhase) / (1 - decelPhase);
+            state.acceleration = -CONFIG.comfortAccel * (0.5 + decelRamp * 0.5);
+            state.speed += state.acceleration * dt;
+            if (state.speed < 0.05) state.speed = 0.05;
+            state.isAccelerating = false;
+            state.isDecelerating = true;
+        }
+
+        // Limitar velocidad
+        state.speed = Math.max(0, Math.min(state.speed, CONFIG.nominalSpeed * 1.2));
+
+        // Mover la cabina
+        var visualSpeed = state.speed * PX_PER_M * CONFIG.timeAccel;
+        var movePx = visualSpeed * dt;
+        var dirSign = (state.direction === 'up') ? -1 : 1;
+        var newY = state.posY + dirSign * movePx;
+
+        // Verificar llegada al waypoint
+        var arrived = (dirSign < 0 && newY <= state.legTargetY) ||
+                      (dirSign > 0 && newY >= state.legTargetY);
+
+        if (arrived) {
+            state.posY = state.legTargetY;
+            arriveAtWaypoint();
+        } else {
+            state.posY = newY;
+            // Actualizar piso actual durante el movimiento
+            var nearestFloor = canvasYToFloor(state.posY);
+            if (nearestFloor !== state.currentFloor) {
+                // Verificar bypass durante el paso
+                if (state.bypassActive && state.externalCalls.has(nearestFloor) &&
+                    !state.skippedFloors.includes(nearestFloor)) {
+                    state.skippedFloors.push(nearestFloor);
+                    state.savedStops++;
+                    state.savedTime += CONFIG.doorOpenTime + CONFIG.doorCloseTime + CONFIG.waitTimeAtFloor + CONFIG.doorAutoCloseDelay;
+                    addLog('⏭️ Pasando piso ' + nearestFloor + ' — OMITIDO por BYPASS', 'bypass');
+                }
+                state.currentFloor = nearestFloor;
+            }
+        }
+    }
+
+    /**
+     * Llegada a un waypoint (parada programada).
+     */
+    function arriveAtWaypoint() {
+        state.speed = 0;
+        state.acceleration = 0;
+        state.isAccelerating = false;
+        state.isDecelerating = false;
+        state.currentFloor = state.legTargetFloor;
+        state.posY = state.legTargetY;
+
+        var wpFloor = state.waypoints[state.currentWaypointIdx];
+
+        // ¿Es una llamada externa o el destino final?
+        if (state.externalCalls.has(wpFloor)) {
+            state.externalCalls.delete(wpFloor);
+            updateExternalCallsDisplay();
+            addLog('📞 Atendiendo llamada externa en piso ' + wpFloor, 'info');
+        }
+
+        addLog('📍 Llegada a piso ' + wpFloor, 'info');
+
+        // Detener movimiento al llegar
+        state.isMoving = false;
+
+        // Si es el destino final y no hay más waypoints, finalizar viaje
+        var isLast = (state.currentWaypointIdx >= state.waypoints.length - 1);
+        if (isLast && wpFloor === state.targetFloor && state.externalCalls.size === 0) {
+            state.direction = 'idle';
+            finishTrip();
+        }
+
+        // Abrir puerta siempre al llegar a un waypoint
+        startOpeningDoor();
+    }
+
+    /**
+     * Finaliza el viaje completo.
+     */
+    function finishTrip() {
+        state.isMoving = false;
+        state.direction = 'idle';
+        state.speed = 0;
+        state.acceleration = 0;
+        state.isAccelerating = false;
+        state.isDecelerating = false;
+        state.totalTripTime = (Date.now() - state.tripStartTime) / 1000;
+        state.waypoints = [];
+        state.currentWaypointIdx = 0;
+        state.emergencyStop = false;
+
+        addLog('✅ Viaje completado en piso ' + state.currentFloor, 'info');
+        if (state.savedStops > 0) {
+            addLog('📊 Bypass ahorró ' + state.savedStops + ' parada(s) — ' + state.savedTime.toFixed(1) + ' s ahorrados', 'bypass');
+        }
+
+        updateUI();
+        draw();
+    }
+
+    // ============================================================
+    //  LOOP PRINCIPAL
+    // ============================================================
+    var animationId = null;
+    var lastTimestamp = 0;
+
+    function animate(timestamp) {
+        if (!timestamp) timestamp = performance.now();
+        var dt = Math.min((timestamp - lastTimestamp) / 1000, 0.05);
+        lastTimestamp = timestamp;
+
+        if (state.isMoving && !state.emergencyStop) {
+            updateMovement(dt);
+        }
+
+        updateDoor(dt);
+        draw();
+        updateUI();
+
+        animationId = requestAnimationFrame(animate);
+    }
+
+    // ============================================================
+    //  EVENT HANDLERS
+    // ============================================================
+
+    // Slider de personas
+    dom.personSlider.addEventListener('input', function() {
+        state.persons = parseInt(this.value);
+        state.bypassActive = shouldBypass(getOccupancyPercent(state.persons));
+        addLog('Ocupación: ' + state.persons + ' personas (' + Math.round(getOccupancyPercent(state.persons)) + '%)', 'info');
+        updateUI();
+        draw();
+    });
+
+    // Click en canvas: llamadas externas en botones del edificio
+    canvas.addEventListener('click', function(e) {
+        var rect = canvas.getBoundingClientRect();
+        var scaleX = canvas.width / rect.width;
+        var scaleY = canvas.height / rect.height;
+        var mx = (e.clientX - rect.left) * scaleX;
+        var my = (e.clientY - rect.top) * scaleY;
+
+        // Área de botones de llamada (a la derecha del edificio)
+        var btnAreaX1 = BUILD.x + BUILD.w + 5;
+        var btnAreaX2 = BUILD.x + BUILD.w + 30;
+
+        if (mx >= btnAreaX1 && mx <= btnAreaX2) {
+            for (var i = 0; i < CONFIG.totalFloors; i++) {
+                var floorNum = i + 1;
+                if (floorNum < 2 || floorNum > CONFIG.usefulFloors + 1) continue;
+
+                var fy = BUILD.y + BUILD.h - i * CONFIG.floorHeightPx - CONFIG.floorHeightPx + 2;
+                var btnY = fy + CONFIG.floorHeightPx / 2 - 8;
+                var btnH = 16;
+
+                if (my >= btnY && my < btnY + btnH) {
+                    if (state.externalCalls.has(floorNum)) {
+                        state.externalCalls.delete(floorNum);
+                        addLog('Llamada externa CANCELADA en piso ' + floorNum, 'info');
+                    } else {
+                        if (floorNum === state.currentFloor) {
+                            addLog('No se puede llamar al piso actual', 'warn');
+                        } else {
+                            state.externalCalls.add(floorNum);
+                            addLog('📞 Llamada externa: piso ' + floorNum, 'info');
+                        }
+                    }
+                    updateExternalCallsDisplay();
+                    updateUI();
+                    draw();
+                    break;
+                }
+            }
+        }
+    });
+
+    // Botón Iniciar viaje
+    $('btnMove').addEventListener('click', startTrip);
+
+    // Botón Detener (parada de emergencia)
+    $('btnStop').addEventListener('click', function() {
+        state.emergencyStop = true;
+        state.isMoving = false;
+        state.speed = 0;
+        state.acceleration = 0;
+        state.isAccelerating = false;
+        state.isDecelerating = false;
+        state.waypoints = [];
+        state.currentWaypointIdx = 0;
+        addLog('⛔ PARADA DE EMERGENCIA activada', 'error');
+        updateUI();
+        draw();
+    });
+
+    // Botón Reiniciar
+    $('btnReset').addEventListener('click', function() {
+        state.currentFloor = 1;
+        state.targetFloor = 1;
+        state.posY = floorToCanvasY(1);
+        state.persons = 5;
+        state.doorState = 'closed';
+        state.doorTimer = 0;
+        state.doorAutoCloseCountdown = 0;
+        state.doorInterrupted = false;
+        state.isMoving = false;
+        state.direction = 'idle';
+        state.speed = 0;
+        state.acceleration = 0;
+        state.isAccelerating = false;
+        state.isDecelerating = false;
+        state.emergencyStop = false;
+        state.bypassActive = false;
+        state.externalCalls.clear();
+        state.waypoints = [];
+        state.currentWaypointIdx = 0;
+        state.skippedFloors = [];
+        state.savedStops = 0;
+        state.savedTime = 0;
+        state.legStartY = 0;
+        state.legTargetY = 0;
+        state.legStartFloor = 1;
+        state.legTargetFloor = 1;
+        state.legProgress = 0;
+        state.tripStartTime = 0;
+        state.tripStartFloor = 1;
+        state.totalTripTime = 0;
+        state.totalTripWork = 0;
+        dom.personSlider.value = 5;
+        addLog('🔄 Sistema reiniciado', 'info');
+        updateExternalCallsDisplay();
+        refreshDestinationButtons();
+        updateUI();
+        draw();
+    });
+
+    // Puertas
+    $('btnDoorOpen').addEventListener('click', function() {
+        if (state.isMoving) { addLog('No se puede abrir puerta en movimiento', 'warn'); return; }
+        startOpeningDoor();
+        updateUI();
+    });
+
+    $('btnDoorClose').addEventListener('click', function() {
+        if (state.isMoving) { addLog('No se puede cerrar puerta en movimiento', 'warn'); return; }
+        startClosingDoor();
+        updateUI();
+    });
+
+    $('btnInterrupt').addEventListener('click', function() {
+        if (state.doorState === 'closing') {
+            startReopeningDoor();
+        } else if (state.doorState === 'open') {
+            addLog('La puerta ya está abierta', 'warn');
+        } else if (state.doorState === 'closed') {
+            addLog('La puerta ya está cerrada', 'warn');
+        } else if (state.doorState === 'reopening') {
+            addLog('La puerta ya se está reabriendo', 'warn');
+        } else if (state.doorState === 'opening') {
+            addLog('La puerta se está abriendo', 'warn');
+        }
+        updateUI();
+    });
+
+    // ============================================================
+    //  INICIALIZACIÓN
+    // ============================================================
+    function init() {
+        state.posY = floorToCanvasY(1);
+        state.startTime = Date.now();
+        dom.personSlider.value = state.persons;
+        buildDestinationButtons();
+        updateExternalCallsDisplay();
+        updateUI();
+        draw();
+        addLog('🏢 Simulador de Ascensor v3.0 — Listo', 'info');
+        addLog('📊 Capacidad: ' + CONFIG.maxPersons + ' personas / ' + CONFIG.maxLoadKg + ' kg', 'info');
+        addLog('💡 Tips: Selecciona destino → Clic en ▲ del edificio para llamadas → Iniciar viaje', 'info');
+        addLog('🔒 Bypass automático ≥ ' + CONFIG.bypassThreshold + '% ocupación (≥19 personas)', 'info');
+
+        lastTimestamp = performance.now();
+        animate();
+    }
+
+    init();
+    </script>
+</body>
+</html>

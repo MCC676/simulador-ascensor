@@ -1,0 +1,5 @@
+# Archivos del proyecto que no van a GitHub Pages
+*.docx
+*.pdf
+APF_*
+(AC-*
