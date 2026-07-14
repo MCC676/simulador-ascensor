@@ -573,6 +573,8 @@
         tripStartFloor: 1,
         totalTripTime: 0,
         totalTripWork: 0,
+        peakSpeed: 0,
+        peakAccel: 0,
     };
 
     // ============================================================
@@ -1074,12 +1076,42 @@
         // Trabajo y potencia del viaje
         var heightM = realHeight(state.tripStartFloor, state.currentFloor);
         var work = calcWork(mass, heightM);
-        dom.physWork.textContent = work.toFixed(1) + ' J';
+        var hasTripData = state.totalTripTime > 0 || state.isMoving;
 
-        var elapsed = state.isMoving ? (Date.now() - state.tripStartTime) / 1000 : state.totalTripTime;
-        if (elapsed < 0.01) elapsed = 0.01;
-        var power = calcPower(work, elapsed);
-        dom.physPower.textContent = power.toFixed(1) + ' W';
+        if (hasTripData || heightM > 0) {
+            dom.physWork.textContent = work.toFixed(1) + ' J';
+        } else {
+            dom.physWork.textContent = '—';
+        }
+
+        var elapsed;
+        if (state.isMoving) {
+            elapsed = (Date.now() - state.tripStartTime) / 1000;
+        } else if (state.totalTripTime > 0) {
+            elapsed = state.totalTripTime;
+        } else {
+            elapsed = 0;
+        }
+
+        if (elapsed > 0.5 && hasTripData) {
+            var power = calcPower(work, elapsed);
+            dom.physPower.textContent = power.toFixed(1) + ' W';
+        } else if (state.isMoving && elapsed > 0.05) {
+            var power2 = calcPower(work, elapsed);
+            dom.physPower.textContent = power2.toFixed(1) + ' W';
+        } else {
+            dom.physPower.textContent = '—';
+        }
+
+        // Velocidad y aceleración: mostrar valor actual + pico del viaje
+        dom.physAcceleration.textContent = accel.toFixed(2) + ' m/s²';
+        dom.physVelocity.textContent = state.speed.toFixed(2) + ' m/s';
+        if (state.peakSpeed > 0.05 && !state.isMoving) {
+            dom.physVelocity.textContent += '  ⚡pico ' + state.peakSpeed.toFixed(2);
+        }
+        if (state.peakAccel > 0.05 && !state.isMoving) {
+            dom.physAcceleration.textContent += '  ⚡pico ' + state.peakAccel.toFixed(2);
+        }
 
         // Ahorros
         dom.physSavedStops.textContent = state.savedStops;
@@ -1236,6 +1268,8 @@
         state.tripStartFloor = state.currentFloor;
         state.totalTripTime = 0;
         state.totalTripWork = 0;
+        state.peakSpeed = 0;
+        state.peakAccel = 0;
 
         addLog('🚀 Viaje iniciado → ' + state.waypoints.join(' → ') + ' (' + state.direction + ')', 'info');
         updateUI();
@@ -1358,6 +1392,10 @@
 
         // Limitar velocidad
         state.speed = Math.max(0, Math.min(state.speed, CONFIG.nominalSpeed * 1.2));
+
+        // Registrar picos del viaje
+        if (state.speed > state.peakSpeed) state.peakSpeed = state.speed;
+        if (Math.abs(state.acceleration) > state.peakAccel) state.peakAccel = Math.abs(state.acceleration);
 
         // Mover la cabina
         var visualSpeed = state.speed * PX_PER_M * CONFIG.timeAccel;
@@ -1578,6 +1616,8 @@
         state.tripStartFloor = 1;
         state.totalTripTime = 0;
         state.totalTripWork = 0;
+        state.peakSpeed = 0;
+        state.peakAccel = 0;
         dom.personSlider.value = 5;
         addLog('🔄 Sistema reiniciado', 'info');
         updateExternalCallsDisplay();
